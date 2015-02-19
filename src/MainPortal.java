@@ -3,6 +3,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
+import java.util.Arrays;
 import java.util.concurrent.*;
 
 public class MainPortal {
@@ -15,11 +16,11 @@ public class MainPortal {
         this.oppgaveHandterer = oppgaveHandterer;
         this.navnHandterer = navnHandterer;
     }
-    public String assemble() throws InterruptedException {
-        Future<String> navn = navnHandterer.getName();
-        Future<Long> resultat = oppgaveHandterer.utforBeregning();
-
-        return "hei " + withTimeout(navn, "[Utilgjengelig]") + ". Result is: " + withTimeout(resultat, "[Utilgjengelig]");
+    public CompletableFuture<String> assemble() throws InterruptedException {
+        CompletableFuture<String> navn = navnHandterer.getName();
+        CompletableFuture<Long> resultat = oppgaveHandterer.utforBeregning();
+        CompletableFuture<Void> done = CompletableFuture.allOf(navn, resultat);
+        return done.thenApply((a) ->  "hei " + withTimeout(navn, "[Utilgjengelig]") + ". Result is: " + withTimeout(resultat, "[Utilgjengelig]" ));
     }
 
     private String withTimeout(Future<?> navn, String defaultString) {

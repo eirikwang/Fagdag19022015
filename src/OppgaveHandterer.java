@@ -32,8 +32,9 @@ public class OppgaveHandterer {
         limiter = new SimpleTimeLimiter(timeoutExecutorService);
     }
 
-    public Future<Long> utforBeregning() throws InterruptedException {
-        return executorService.submit(() -> {
+    public CompletableFuture<Long> utforBeregning() throws InterruptedException {
+        return CompletableFuture.supplyAsync(() -> {
+
             long startTime = System.nanoTime();
             ContiguousSet<Long> ints = ContiguousSet.create(Range.closed(0L, countDownLatch.getCount() - 1), DiscreteDomain.longs());
             ints.forEach(this::leggTil);
@@ -42,7 +43,11 @@ public class OppgaveHandterer {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            if (rand.nextInt(3) == 1) wait(100);
+            if (rand.nextInt(3) == 1) try {
+                wait(100);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
             System.out.println("Svar: " + sum + " - Tidsbruk: " + (System.nanoTime() - startTime) / 1000000 + "ms");
             return sum.get();
         });

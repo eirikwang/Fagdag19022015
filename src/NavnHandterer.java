@@ -1,8 +1,10 @@
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
+import java.util.concurrent.CompletableFuture;
+
 public class NavnHandterer {
-    public ListenableFuture<String> getName() {
-        return Futures.immediateCheckedFuture("Random " + Math.random());
+    public CompletableFuture<String> getName() {
+        return CompletableFuture.supplyAsync(()->"Random " + Math.random());
     }
 }
