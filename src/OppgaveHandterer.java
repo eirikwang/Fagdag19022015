@@ -15,10 +15,11 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class OppgaveHandterer {
     private final ExecutorService executorService;
+    private final ExecutorService timeoutExecutorService;
     AtomicLong sum = new AtomicLong();
     CountDownLatch countDownLatch = new CountDownLatch(1001);
     final List<Long> finishedOps = Collections.synchronizedList(new ArrayList<>());
-    TimeLimiter limiter = new SimpleTimeLimiter();
+    TimeLimiter limiter;
 
 
     public OppgaveHandterer() {
@@ -27,6 +28,8 @@ public class OppgaveHandterer {
                 .setUncaughtExceptionHandler(new Feilhandterer(this))
                 .build();
         executorService = Executors.newFixedThreadPool(10, threadFactory);
+        timeoutExecutorService = Executors.newFixedThreadPool(10, threadFactory);
+        limiter = new SimpleTimeLimiter(timeoutExecutorService);
     }
 
     public Long utforBeregning() throws InterruptedException {
@@ -101,5 +104,10 @@ public class OppgaveHandterer {
         executorService.execute(() ->
                 simulerTimeout(() ->
                         simulerKall(tall), tall));
+    }
+
+    public void shutdown(){
+        executorService.shutdownNow();
+        timeoutExecutorService.shutdownNow();
     }
 }
