@@ -1,7 +1,7 @@
 public class Main {
 
     public static void main(String[] args) throws InterruptedException {
-        new OppgaveHandterer().utforBeregning();
+        System.out.println(new MainPortal(new OppgaveHandterer(), new NavnHandterer()).assemble());
     }
 
 }

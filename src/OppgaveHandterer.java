@@ -29,16 +29,14 @@ public class OppgaveHandterer {
         executorService = Executors.newFixedThreadPool(10, threadFactory);
     }
 
-    public void utforBeregning() throws InterruptedException {
+    public Long utforBeregning() throws InterruptedException {
 
         long startTime = System.nanoTime();
         ContiguousSet<Long> ints = ContiguousSet.create(Range.closed(0L, countDownLatch.getCount() - 1), DiscreteDomain.longs());
         ints.forEach(this::leggTil);
         ventPaaFullfort();
         System.out.println("Svar: " + sum + " - Tidsbruk: " + (System.nanoTime() - startTime) / 1000000 + "ms");
-        Thread.sleep(200);
-        executorService.shutdown();
-        executorService.awaitTermination(100, TimeUnit.MILLISECONDS);
+        return sum.get();
     }
 
     private void ventPaaFullfort() throws InterruptedException {

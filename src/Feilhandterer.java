@@ -13,7 +13,6 @@ public class Feilhandterer implements Thread.UncaughtExceptionHandler {
         if (e instanceof FeilMedTall) {
             oppgaveHanderer.leggTil(((FeilMedTall) e).tall);
         } else if (e instanceof FeilMedTimeout) {
-            System.out.println("timeout");
             oppgaveHanderer.leggTil(((FeilMedTimeout) e).tall);
         }
     }
