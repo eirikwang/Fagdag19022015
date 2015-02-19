@@ -4,7 +4,7 @@ public class MainPortal {
     private final OppgaveHandterer oppgaveHandterer;
     private final NavnHandterer navnHandterer;
     ExecutorService executor = Executors.newFixedThreadPool(4);
-fjern
+
     public MainPortal(OppgaveHandterer oppgaveHandterer, NavnHandterer navnHandterer) {
         this.oppgaveHandterer = oppgaveHandterer;
         this.navnHandterer = navnHandterer;
