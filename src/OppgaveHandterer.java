@@ -1,19 +1,25 @@
 import com.google.common.collect.ContiguousSet;
 import com.google.common.collect.DiscreteDomain;
 import com.google.common.collect.Range;
+import com.google.common.util.concurrent.SimpleTimeLimiter;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.google.common.util.concurrent.TimeLimiter;
+import com.google.common.util.concurrent.UncheckedTimeoutException;
 
-import java.security.Provider;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
-import java.util.function.Function;
 
 public class OppgaveHandterer {
     private final ExecutorService executorService;
     AtomicLong sum = new AtomicLong();
-    CountDownLatch countDownLatch = new CountDownLatch(1000);
+    CountDownLatch countDownLatch = new CountDownLatch(1001);
+    final List<Long> finishedOps = Collections.synchronizedList(new ArrayList<>());
+    TimeLimiter limiter = new SimpleTimeLimiter();
+
 
     public OppgaveHandterer() {
         ThreadFactory threadFactory = new ThreadFactoryBuilder()
@@ -26,28 +32,55 @@ public class OppgaveHandterer {
     public void utforBeregning() throws InterruptedException {
 
         long startTime = System.nanoTime();
-        ContiguousSet<Long> ints = ContiguousSet.create(Range.closed(0L, countDownLatch.getCount()), DiscreteDomain.longs());
+        ContiguousSet<Long> ints = ContiguousSet.create(Range.closed(0L, countDownLatch.getCount() - 1), DiscreteDomain.longs());
         ints.forEach(this::leggTil);
         ventPaaFullfort();
         System.out.println("Svar: " + sum + " - Tidsbruk: " + (System.nanoTime() - startTime) / 1000000 + "ms");
-
+        Thread.sleep(200);
+        executorService.shutdown();
+        executorService.awaitTermination(100, TimeUnit.MILLISECONDS);
     }
 
     private void ventPaaFullfort() throws InterruptedException {
         countDownLatch.await(5000, TimeUnit.MILLISECONDS);
-        executorService.shutdown();
-        executorService.awaitTermination(5000, TimeUnit.MILLISECONDS);
     }
 
-    private void beregn(long i) {
-        sleep();
-        if (new Random().nextInt(100) == 1) throw new FeilMedTall(i);
-        if (i % 2 == 0) {
-            sum.addAndGet(partall(i));
-        } else {
-            sum.addAndGet(oddetall(i));
+    private void simulerTimeout(Runnable beregning, long tall) {
+        try {
+            limiter.newProxy(beregning, Runnable.class, 10, TimeUnit.MILLISECONDS).run();
+        } catch (UncheckedTimeoutException ex) {
+            throw new FeilMedTimeout(tall);
         }
-        countDownLatch.countDown();
+    }
+
+    private Long simulerKall(Long tall) {
+        sleep(2);
+        Long resultat = beregn(tall);
+        if(ensureNotAdded(tall)){
+            sum.addAndGet(resultat);
+            countDownLatch.countDown();
+        }
+        return 1L;
+    }
+
+    private boolean ensureNotAdded(Long tall) {
+        synchronized (finishedOps){
+            if(finishedOps.contains(tall)) return false;
+            finishedOps.add(tall);
+        }
+        return true;
+    }
+
+    private final static Random rand = new Random();
+
+    private static Long beregn(long i) {
+        if (rand.nextInt(100) == 1) throw new FeilMedTall(i);
+        if (rand.nextInt(100) == 2) sleep(20);
+        if (i % 2 == 0) {
+            return partall(i);
+        } else {
+            return oddetall(i);
+        }
     }
 
 
@@ -59,15 +92,16 @@ public class OppgaveHandterer {
         return i % 3;
     }
 
-    private static void sleep() {
+    private static void sleep(int millis) {
         try {
-            Thread.sleep(2);
+            Thread.sleep(millis);
         } catch (InterruptedException e) {
-            e.printStackTrace();
         }
     }
 
     public void leggTil(long tall) {
-        executorService.execute(() -> beregn(tall));
+        executorService.execute(() ->
+                simulerTimeout(() ->
+                        simulerKall(tall), tall));
     }
 }
