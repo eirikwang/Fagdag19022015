@@ -32,14 +32,20 @@ public class OppgaveHandterer {
         limiter = new SimpleTimeLimiter(timeoutExecutorService);
     }
 
-    public Long utforBeregning() throws InterruptedException {
-
-        long startTime = System.nanoTime();
-        ContiguousSet<Long> ints = ContiguousSet.create(Range.closed(0L, countDownLatch.getCount() - 1), DiscreteDomain.longs());
-        ints.forEach(this::leggTil);
-        ventPaaFullfort();
-        System.out.println("Svar: " + sum + " - Tidsbruk: " + (System.nanoTime() - startTime) / 1000000 + "ms");
-        return sum.get();
+    public Future<Long> utforBeregning() throws InterruptedException {
+        return executorService.submit(() -> {
+            long startTime = System.nanoTime();
+            ContiguousSet<Long> ints = ContiguousSet.create(Range.closed(0L, countDownLatch.getCount() - 1), DiscreteDomain.longs());
+            ints.forEach(this::leggTil);
+            try {
+                ventPaaFullfort();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            if (rand.nextInt(3) == 1) wait(100);
+            System.out.println("Svar: " + sum + " - Tidsbruk: " + (System.nanoTime() - startTime) / 1000000 + "ms");
+            return sum.get();
+        });
     }
 
     private void ventPaaFullfort() throws InterruptedException {
@@ -57,7 +63,7 @@ public class OppgaveHandterer {
     private Long simulerKall(Long tall) {
         sleep(2);
         Long resultat = beregn(tall);
-        if(ensureNotAdded(tall)){
+        if (ensureNotAdded(tall)) {
             sum.addAndGet(resultat);
             countDownLatch.countDown();
         }
@@ -65,8 +71,8 @@ public class OppgaveHandterer {
     }
 
     private boolean ensureNotAdded(Long tall) {
-        synchronized (finishedOps){
-            if(finishedOps.contains(tall)) return false;
+        synchronized (finishedOps) {
+            if (finishedOps.contains(tall)) return false;
             finishedOps.add(tall);
         }
         return true;
@@ -106,7 +112,7 @@ public class OppgaveHandterer {
                         simulerKall(tall), tall));
     }
 
-    public void shutdown(){
+    public void shutdown() {
         executorService.shutdownNow();
         timeoutExecutorService.shutdownNow();
     }

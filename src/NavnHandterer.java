@@ -1,6 +1,8 @@
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 
 public class NavnHandterer {
-    public String getName() {
-        return "Random " + Math.random();
+    public ListenableFuture<String> getName() {
+        return Futures.immediateCheckedFuture("Random " + Math.random());
     }
 }
